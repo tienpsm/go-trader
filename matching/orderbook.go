@@ -339,15 +339,17 @@ func (ob *OrderBook) String() string {
 		ob.symbol.Name, ob.bids.Size(), ob.asks.Size())
 }
 
-// GetSpread returns the bid-ask spread (ask - bid), or 0 if there's no spread
+// GetSpread returns the bid-ask spread (ask - bid), or 0 if there's no spread.
+// A spread of 0 may indicate no market or a crossed/locked market.
 func (ob *OrderBook) GetSpread() uint64 {
 	if ob.bestBid == nil || ob.bestAsk == nil {
 		return 0
 	}
-	if ob.bestAsk.Price > ob.bestBid.Price {
-		return ob.bestAsk.Price - ob.bestBid.Price
+	// In a normal market, ask > bid. If ask <= bid (crossed market), return 0.
+	if ob.bestAsk.Price <= ob.bestBid.Price {
+		return 0
 	}
-	return 0
+	return ob.bestAsk.Price - ob.bestBid.Price
 }
 
 // GetMidPrice returns the mid price ((best bid + best ask) / 2)

@@ -482,8 +482,15 @@ func (m *MarketManager) match(ob *OrderBook) {
 		m.executeOrder(askOrder, price, quantity)
 	}
 
-	// TODO: Activate stop orders
-	// TODO: Activate trailing stop orders
+	// TODO: Stop order activation
+	// When market price moves through stop prices, stop orders should be activated:
+	// - Buy stop orders activate when ask price >= stop price
+	// - Sell stop orders activate when bid price <= stop price
+	// This is left as a future enhancement as it requires additional price tracking.
+
+	// TODO: Trailing stop order activation
+	// Trailing stops need to track the market and update stop prices accordingly.
+	// This is left as a future enhancement as it requires price monitoring.
 }
 
 // validateOrder validates an order
