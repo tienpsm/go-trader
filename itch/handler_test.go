@@ -1,6 +1,7 @@
 package itch
 
 import (
+	"os"
 	"testing"
 )
 
@@ -370,5 +371,60 @@ func TestReadUint48BE(t *testing.T) {
 	result = readUint48BE(data)
 	if result != 16777216 {
 		t.Errorf("Expected 16777216, got %d", result)
+	}
+}
+
+func TestParser_SampleFile(t *testing.T) {
+	// Test with the sample.itch file from CppTrader
+	filename := "../testdata/sample.itch"
+	
+	// Check if file exists
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		t.Skipf("Sample file not found: %s. Run download script first.", filename)
+		return
+	}
+	
+	// Use stats handler to collect message statistics
+	handler := &StatsHandler{}
+	
+	// Parse the file
+	bytesRead, err := ParseFile(filename, handler)
+	if err != nil {
+		t.Fatalf("Failed to parse file: %v", err)
+	}
+	
+	// Verify we read data
+	if bytesRead == 0 {
+		t.Fatal("No bytes read from file")
+	}
+	
+	// Verify total message count matches expected (1,563,071 from CppTrader)
+	expectedMessages := 1563071
+	if handler.Stats.TotalMessages != expectedMessages {
+		t.Errorf("Expected %d messages, got %d", expectedMessages, handler.Stats.TotalMessages)
+	}
+	
+	// Print statistics
+	t.Logf("Parsed %d bytes", bytesRead)
+	t.Logf("Total Messages: %d", handler.Stats.TotalMessages)
+	t.Logf("  System Events: %d", handler.Stats.SystemEvents)
+	t.Logf("  Stock Directories: %d", handler.Stats.StockDirectories)
+	t.Logf("  Stock Trading Actions: %d", handler.Stats.StockTradingActions)
+	t.Logf("  Add Orders: %d", handler.Stats.AddOrders)
+	t.Logf("  Add Orders (MPID): %d", handler.Stats.AddOrderMPID)
+	t.Logf("  Order Executed: %d", handler.Stats.OrderExecuted)
+	t.Logf("  Order Executed (Price): %d", handler.Stats.OrderExecutedPrice)
+	t.Logf("  Order Cancels: %d", handler.Stats.OrderCancels)
+	t.Logf("  Order Deletes: %d", handler.Stats.OrderDeletes)
+	t.Logf("  Order Replaces: %d", handler.Stats.OrderReplaces)
+	t.Logf("  Trades: %d", handler.Stats.Trades)
+	t.Logf("  Cross Trades: %d", handler.Stats.CrossTrades)
+	t.Logf("  Broken Trades: %d", handler.Stats.BrokenTrades)
+	t.Logf("  NOII: %d", handler.Stats.NOII)
+	t.Logf("  RPII: %d", handler.Stats.RPII)
+	
+	// Verify no unknown messages
+	if handler.Stats.UnknownMessages > 0 {
+		t.Errorf("Encountered %d unknown messages", handler.Stats.UnknownMessages)
 	}
 }

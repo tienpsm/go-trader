@@ -3,9 +3,12 @@
 package itch
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 )
 
 // Message types for ITCH protocol
@@ -861,4 +864,218 @@ func (msg AddOrderMessage) String() string {
 	}
 	return fmt.Sprintf("AddOrder{Ref: %d, Side: %s, Shares: %d, Stock: %s, Price: %d}",
 		msg.OrderReferenceNumber, side, msg.Shares, stock, msg.Price)
+}
+
+// MessageStats tracks statistics about parsed messages
+type MessageStats struct {
+	TotalMessages         int
+	SystemEvents          int
+	StockDirectories      int
+	StockTradingActions   int
+	RegSHO                int
+	MarketParticipantPos  int
+	MWCBDecline           int
+	MWCBStatus            int
+	IPOQuoting            int
+	AddOrders             int
+	AddOrderMPID          int
+	OrderExecuted         int
+	OrderExecutedPrice    int
+	OrderCancels          int
+	OrderDeletes          int
+	OrderReplaces         int
+	Trades                int
+	CrossTrades           int
+	BrokenTrades          int
+	NOII                  int
+	RPII                  int
+	UnknownMessages       int
+}
+
+// StatsHandler is a handler that collects message statistics
+type StatsHandler struct {
+	DefaultHandler
+	Stats MessageStats
+}
+
+func (h *StatsHandler) OnSystemEvent(msg SystemEventMessage) error {
+	h.Stats.SystemEvents++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnStockDirectory(msg StockDirectoryMessage) error {
+	h.Stats.StockDirectories++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnStockTradingAction(msg StockTradingActionMessage) error {
+	h.Stats.StockTradingActions++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnRegSHO(msg RegSHOMessage) error {
+	h.Stats.RegSHO++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnMarketParticipantPosition(msg MarketParticipantPositionMessage) error {
+	h.Stats.MarketParticipantPos++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnMWCBDecline(msg MWCBDeclineMessage) error {
+	h.Stats.MWCBDecline++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnMWCBStatus(msg MWCBStatusMessage) error {
+	h.Stats.MWCBStatus++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnIPOQuoting(msg IPOQuotingMessage) error {
+	h.Stats.IPOQuoting++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnAddOrder(msg AddOrderMessage) error {
+	h.Stats.AddOrders++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnAddOrderMPID(msg AddOrderMPIDMessage) error {
+	h.Stats.AddOrderMPID++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnOrderExecuted(msg OrderExecutedMessage) error {
+	h.Stats.OrderExecuted++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnOrderExecutedWithPrice(msg OrderExecutedWithPriceMessage) error {
+	h.Stats.OrderExecutedPrice++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnOrderCancel(msg OrderCancelMessage) error {
+	h.Stats.OrderCancels++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnOrderDelete(msg OrderDeleteMessage) error {
+	h.Stats.OrderDeletes++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnOrderReplace(msg OrderReplaceMessage) error {
+	h.Stats.OrderReplaces++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnTrade(msg TradeMessage) error {
+	h.Stats.Trades++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnCrossTrade(msg CrossTradeMessage) error {
+	h.Stats.CrossTrades++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnBrokenTrade(msg BrokenTradeMessage) error {
+	h.Stats.BrokenTrades++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnNOII(msg NOIIMessage) error {
+	h.Stats.NOII++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnRPII(msg RPIIMessage) error {
+	h.Stats.RPII++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+func (h *StatsHandler) OnUnknownMessage(msgType byte, data []byte) error {
+	h.Stats.UnknownMessages++
+	h.Stats.TotalMessages++
+	return nil
+}
+
+// ParseFile parses an ITCH file from the given path
+func ParseFile(filename string, handler Handler) (int64, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	return ParseReader(file, handler)
+}
+
+// ParseReader parses ITCH messages from an io.Reader
+// The format expects each message to be prefixed with a 2-byte big-endian length
+func ParseReader(reader io.Reader, handler Handler) (int64, error) {
+	parser := NewParser(handler)
+	var totalBytes int64
+	
+	// Use buffered reader for efficient reading
+	bufReader := bufio.NewReaderSize(reader, 64*1024) // 64KB buffer
+	lengthBuf := make([]byte, 2)
+
+	for {
+		// Read 2-byte length prefix
+		_, err := io.ReadFull(bufReader, lengthBuf)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return totalBytes, err
+		}
+		
+		// Parse message length
+		msgLen := binary.BigEndian.Uint16(lengthBuf)
+		if msgLen == 0 {
+			continue
+		}
+		
+		// Read the message
+		msgBuf := make([]byte, msgLen)
+		_, err = io.ReadFull(bufReader, msgBuf)
+		if err != nil {
+			return totalBytes, err
+		}
+		
+		// Parse the message
+		consumed, parseErr := parser.Parse(msgBuf)
+		if parseErr != nil {
+			return totalBytes, parseErr
+		}
+		
+		totalBytes += int64(consumed)
+	}
+
+	return totalBytes, nil
 }
