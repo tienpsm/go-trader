@@ -237,7 +237,76 @@ go test ./... -v
 ## Benchmarking
 
 ```bash
-go test ./... -bench=.
+go test ./... -bench=. -benchmem
+```
+
+### ITCH File Benchmarking
+
+To benchmark ITCH file parsing with sample data:
+
+1. **Download Sample Data**
+   ```bash
+   mkdir -p testdata
+   curl -L -o testdata/sample.itch https://github.com/chronoxor/CppTrader/raw/master/tools/itch/sample.itch
+   ```
+
+2. **Run ITCH Benchmarks**
+   ```bash
+   go test ./itch -bench=BenchmarkParser_ParseFile -benchmem
+   ```
+
+3. **Use ITCH Analyzer Tool**
+   ```bash
+   # Build the analyzer
+   go build -o itch-analyzer ./cmd/itch-analyzer
+   
+   # Basic analysis
+   ./itch-analyzer testdata/sample.itch
+   
+   # Validate file format
+   ./itch-analyzer --validate testdata/sample.itch
+   
+   # Run performance benchmark
+   ./itch-analyzer --benchmark testdata/sample.itch
+   
+   # Show verbose output (all messages)
+   ./itch-analyzer --verbose testdata/sample.itch | head -100
+   ```
+
+### ITCH Analyzer Options
+
+The `itch-analyzer` tool provides several modes for analyzing ITCH files:
+
+- **Basic Analysis**: Shows message statistics, order statistics, and performance metrics
+- **`--validate`**: Validates file format and reports any parsing errors
+- **`--benchmark`**: Runs 5 iterations to measure average performance
+- **`--verbose`**: Prints detailed information for each message (use with `head` for large files)
+
+Example output:
+```
+================================================================================
+                     ITCH File Analysis Results
+================================================================================
+
+📊 Message Statistics:
+  Total Messages:         1563071
+  System Events:          6
+  Stock Directories:      8352
+  Add Orders:             58768
+  Order Executed:         2407
+  ...
+
+📈 Order Statistics:
+  Buy Orders:             22146 (37.59%)
+  Sell Orders:            36769 (62.41%)
+  Buy Volume:             18554606 shares
+  Sell Volume:            49194197 shares
+  Price Range:            $0.00 - $34000.00
+
+⚡ Performance Metrics:
+  Parsing Time:           0.11 seconds
+  Throughput:             14.3M messages/second
+  Data Rate:              611 MB/s
 ```
 
 ## Contributing
