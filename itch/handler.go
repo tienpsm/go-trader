@@ -1069,12 +1069,13 @@ func ParseReader(reader io.Reader, handler Handler) (int64, error) {
 		}
 		
 		// Parse the message
-		consumed, parseErr := parser.Parse(msgBuf)
+		_, parseErr := parser.Parse(msgBuf)
 		if parseErr != nil {
 			return totalBytes, parseErr
 		}
 		
-		totalBytes += int64(consumed)
+		// Count total bytes including length prefix
+		totalBytes += int64(2 + msgLen)
 	}
 
 	return totalBytes, nil

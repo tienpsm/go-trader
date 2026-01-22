@@ -37,7 +37,7 @@ func (h *AnalyzerHandler) OnAddOrder(msg itch.AddOrderMessage) error {
 	if msg.BuySellIndicator == 'B' {
 		h.buyOrders++
 		h.buyVolume += uint64(msg.Shares)
-	} else {
+	} else if msg.BuySellIndicator == 'S' {
 		h.sellOrders++
 		h.sellVolume += uint64(msg.Shares)
 	}
@@ -72,7 +72,7 @@ func (h *AnalyzerHandler) OnAddOrderMPID(msg itch.AddOrderMPIDMessage) error {
 	if msg.BuySellIndicator == 'B' {
 		h.buyOrders++
 		h.buyVolume += uint64(msg.Shares)
-	} else {
+	} else if msg.BuySellIndicator == 'S' {
 		h.sellOrders++
 		h.sellVolume += uint64(msg.Shares)
 	}
