@@ -70,14 +70,28 @@ BenchmarkDeleteOrder-4           	17690310	   285.9 ns/op	    0 B/op	  0 allocs/
 
 ### ITCH Parser Benchmarks
 
+#### Individual Message Parsing
 ```
-BenchmarkParseSystemEvent-4     	548732036	  6.560 ns/op	  0 B/op	  0 allocs/op
-BenchmarkParseAddOrder-4        	174654752	 20.68 ns/op	  0 B/op	  0 allocs/op
-BenchmarkParseOrderExecuted-4   	481283313	  7.485 ns/op	  0 B/op	  0 allocs/op
-BenchmarkParseAllMessages-4     	 89720985	 40.23 ns/op	  0 B/op	  0 allocs/op
-BenchmarkReadUint48BE-4         	1000000000	  0.312 ns/op	  0 B/op	  0 allocs/op
-BenchmarkReadUint64BE-4         	1000000000	  0.312 ns/op	  0 B/op	  0 allocs/op
+BenchmarkParser_Parse/SystemEvent-4       183312181    6.551 ns/op   1831.92 MB/s    0 B/op    0 allocs/op
+BenchmarkParser_Parse/AddOrder-4           57214843   20.61 ns/op   1746.64 MB/s    0 B/op    0 allocs/op
+BenchmarkParser_Parse/OrderExecuted-4     160157340    7.502 ns/op   4132.42 MB/s    0 B/op    0 allocs/op
+BenchmarkParser_Parse/StockDirectory-4     50589108   23.82 ns/op   1637.39 MB/s    0 B/op    0 allocs/op
+BenchmarkParser_Parse/Trade-4              59239125   20.31 ns/op   2166.82 MB/s    0 B/op    0 allocs/op
+BenchmarkParser_Parse/NOII-4               49354904   24.51 ns/op   2040.23 MB/s    0 B/op    0 allocs/op
 ```
+
+#### Buffer and File Parsing
+```
+BenchmarkParser_ParseAll-4                 20045203   61.95 ns/op   2292.09 MB/s    0 B/op    0 allocs/op
+BenchmarkParser_ParseFile-4                      10  105.5 ms/op     693.62 MB/s    89 MB/op   1563083 allocs/op
+BenchmarkParser_ParseFileWithStats-4             10  112.0 ms/op     653.38 MB/s    89 MB/op   1563083 allocs/op
+```
+
+**File Parsing Performance (sample.itch - 70MB, 1.5M messages):**
+- Throughput: **~694 MB/s** or **~14.3M messages/second**
+- Parse time: **~105 ms** for 1,563,071 messages
+- Memory: Zero allocations for message parsing (allocations are for message buffers)
+- Validated against CppTrader reference: ✅ All 1,563,071 messages parsed correctly
 
 ## Logic Matching Test Results
 
