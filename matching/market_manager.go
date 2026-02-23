@@ -149,6 +149,33 @@ func (m *MarketManager) DeleteOrderBook(id uint32) ErrorCode {
 	return ErrorOK
 }
 
+// RestoreOrder restores an order from a snapshot, preserving its execution state.
+// It bypasses normal quantity initialisation and adds the order exactly as provided.
+// This method is intended only for use during persistence recovery.
+func (m *MarketManager) RestoreOrder(order Order) ErrorCode {
+	if order.ID == 0 {
+		return ErrorOrderIDInvalid
+	}
+
+	if _, exists := m.orders[order.ID]; exists {
+		return ErrorOrderDuplicate
+	}
+
+	ob, exists := m.orderBooks[order.SymbolID]
+	if !exists {
+		return ErrorOrderBookNotFound
+	}
+
+	orderNode := NewOrderNode(order)
+	m.orders[order.ID] = orderNode
+
+	ob.AddOrder(orderNode)
+	m.handler.OnAddOrder(order)
+	m.updateLevel(ob, orderNode, UpdateAdd)
+
+	return ErrorOK
+}
+
 // AddOrder adds a new order
 func (m *MarketManager) AddOrder(order Order) ErrorCode {
 	// Validate order
